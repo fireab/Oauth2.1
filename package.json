@@ -1,0 +1,19 @@
+{
+  "name": "oauth-oidc-lab",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "iam",
+    "frontend-1",
+    "frontend-2"
+  ],
+  "scripts": {
+    "dev:iam": "npm run dev --workspace=iam",
+    "dev:frontend1": "npm run dev --workspace=frontend-1",
+    "dev:frontend2": "npm run dev --workspace=frontend-2",
+    "dev": "concurrently \"npm run dev:iam\" \"npm run dev:frontend1\" \"npm run dev:frontend2\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
