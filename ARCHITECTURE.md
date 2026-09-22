@@ -24,6 +24,44 @@ The system is designed as a **Microservices Monorepo** simulating a typical Ente
 The lab strictly implements the **Authorization Code Flow with Proof Key for Code Exchange (PKCE)**, which is the modern standard for SPAs.
 
 ### Step-by-Step Flow:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Browser
+    participant Frontend as Frontend (Tenant 1/2)
+    participant IAM as Central IAM (Port 3000)
+
+    User->>Frontend: Access Dashboard
+    Frontend->>Frontend: Generate PKCE (code_verifier & code_challenge)
+    Frontend->>Frontend: Generate state
+    Frontend->>Browser: Redirect to IAM (/authorize?client_id=...&prompt=none)
+    Browser->>IAM: GET /authorize (silent check)
+    
+    alt No Active IAM Session
+        IAM->>Browser: Redirect to /callback?error=login_required
+        Browser->>Frontend: Handle error
+        Frontend->>Browser: Display "Login" Button
+        User->>Browser: Click "Login"
+        Browser->>IAM: GET /authorize (interactive)
+        IAM->>Browser: Display Login Form
+        User->>IAM: Enters Credentials (demo/password123)
+        IAM->>IAM: Validate Credentials & Create SSO Session
+    else Active IAM Session exists
+        IAM->>IAM: Check Tenant Session limits
+    end
+
+    IAM->>IAM: Issue Authorization Code (bound to code_challenge)
+    IAM->>Browser: Redirect to /callback?code=123...&state=xyz...
+    Browser->>Frontend: Handle callback
+    Frontend->>Frontend: Validate state matches stored state
+    Frontend->>IAM: POST /token (code + code_verifier)
+    IAM->>IAM: Hash code_verifier and compare to code_challenge
+    IAM-->>Frontend: Returns Access, ID, & Refresh Tokens
+    Frontend->>User: Renders Home Dashboard with Tokens
+```
+
 1. **Initiation**: The user attempts to access a protected resource on a Frontend (e.g., Tenant 1) without a valid access token.
 2. **PKCE Generation**: The frontend locally generates a `code_verifier` (a random string) and hashes it with SHA-256 to create a `code_challenge`.
 3. **Authorization Request**: The frontend redirects the user's browser to the Central IAM's `/authorize` endpoint, passing `client_id`, `state`, `code_challenge`, and `code_challenge_method=S256`.
